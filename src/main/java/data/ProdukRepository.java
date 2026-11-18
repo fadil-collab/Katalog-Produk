@@ -40,8 +40,7 @@ public class ProdukRepository {
         }
         return daftarProduk;
     }
-}
-
+    
      public void update(Produk produk) throws SQLException {
         String sql = "UPDATE produk SET nama = ?, harga = ?, foto = ? WHERE id = ?";
         try (
