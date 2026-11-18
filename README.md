@@ -1,7 +1,5 @@
 # Katalog Produk JavaFX & SQLite
 
-Aplikasi desktop berbasis **JavaFX** dan **SQLite** untuk mengelola data katalog produk dengan fitur CRUD (Tambah, Lihat, Edit, dan Hapus produk).
-
 ## Fitur
 
 - Tambah produk
