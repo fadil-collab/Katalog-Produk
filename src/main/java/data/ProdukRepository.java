@@ -41,3 +41,27 @@ public class ProdukRepository {
         return daftarProduk;
     }
 }
+
+     public void update(Produk produk) throws SQLException {
+        String sql = "UPDATE produk SET nama = ?, harga = ?, foto = ? WHERE id = ?";
+        try (
+            Connection koneksi = Database.bukaKoneksi();
+            PreparedStatement perintah = koneksi.prepareStatement(sql)) {
+            perintah.setString(1, produk.getNama());
+            perintah.setLong(2, produk.getHarga());
+            perintah.setString(3, produk.getFoto());
+            perintah.setLong(4, produk.getId());
+            perintah.executeUpdate();
+        }
+    }
+
+    public void delete(long id) throws SQLException {
+        String sql = "DELETE FROM produk WHERE id = ?";
+        try (
+            Connection koneksi = Database.bukaKoneksi();
+            PreparedStatement perintah = koneksi.prepareStatement(sql)) {
+            perintah.setLong(1, id);
+            perintah.executeUpdate();
+        }
+    }
+}
