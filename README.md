@@ -31,3 +31,7 @@ Masuk ke folder proyek, lalu jalankan:
 ```bash
 mvn clean javafx:run
 ```
+
+## Screenshot Aplikasi
+
+<img width="1230" height="885" alt="SS Katalog" src="https://github.com/user-attachments/assets/6b61c0df-0f83-4e76-b200-7648e77aac9e" />
