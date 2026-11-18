@@ -3,12 +3,18 @@ package controller;
 import java.net.URL;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Optional;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
@@ -24,12 +30,18 @@ public class KatalogController {
     @FXML
     private ComboBox<String> fotoBox;
     @FXML
+    private Button simpanButton;
+    @FXML
+    private Button batalButton;
+    @FXML
     private Label pesanLabel;
     @FXML
     private Label jumlahLabel;
     @FXML
     private TilePane katalogPane;
+
     private final ProdukRepository repository = new ProdukRepository();
+    private Produk produkSedangDiedit = null;
 
     @FXML
     private void initialize() {
@@ -60,6 +72,7 @@ public class KatalogController {
         fotoView.setFitWidth(170);
         fotoView.setFitHeight(110);
         fotoView.setPreserveRatio(true);
+
         StackPane bingkai = new StackPane();
         bingkai.setPrefSize(180, 120);
         bingkai.setMinSize(180, 120);
@@ -67,8 +80,7 @@ public class KatalogController {
 
         URL lokasi = getClass().getResource("/image/" + produk.getFoto());
         if (lokasi != null) {
-            Image gambar = new Image(lokasi.toExternalForm(),
-                    170, 110, true, true);
+            Image gambar = new Image(lokasi.toExternalForm(), 170, 110, true, true);
             if (!gambar.isError()) {
                 fotoView.setImage(gambar);
                 bingkai.getChildren().add(fotoView);
@@ -82,9 +94,25 @@ public class KatalogController {
         Label namaLabel = new Label(produk.getNama());
         namaLabel.setWrapText(true);
         namaLabel.getStyleClass().add("nama-produk");
+
         Label hargaLabel = new Label("Rp" + produk.getHarga());
+
         Label idLabel = new Label("ID: " + produk.getId());
         idLabel.getStyleClass().add("muted");
+
+        Button editButton = new Button("Edit");
+        editButton.getStyleClass().add("button-edit");
+        editButton.setMaxWidth(Double.MAX_VALUE);
+        editButton.setOnAction(e -> startEdit(produk));
+
+        Button hapusButton = new Button("Hapus");
+        hapusButton.getStyleClass().add("button-delete");
+        hapusButton.setMaxWidth(Double.MAX_VALUE);
+        hapusButton.setOnAction(e -> deleteProduct(produk));
+
+        HBox aksiBox = new HBox(8, editButton, hapusButton);
+        HBox.setHgrow(editButton, Priority.ALWAYS);
+        HBox.setHgrow(hapusButton, Priority.ALWAYS);
 
         VBox kartu = new VBox();
         kartu.setSpacing(8);
@@ -92,21 +120,73 @@ public class KatalogController {
         kartu.setPrefWidth(220);
         kartu.setMaxWidth(220);
         kartu.getStyleClass().add("kartu-produk");
-        kartu.getChildren().add(bingkai);
-        kartu.getChildren().add(namaLabel);
-        kartu.getChildren().add(hargaLabel);
-        kartu.getChildren().add(idLabel);
+        kartu.getChildren().addAll(bingkai, namaLabel, hargaLabel, idLabel, aksiBox);
         return kartu;
+    }
+
+    private void startEdit(Produk produk) {
+        produkSedangDiedit = produk;
+        namaField.setText(produk.getNama());
+        hargaField.setText(String.valueOf(produk.getHarga()));
+        fotoBox.setValue(produk.getFoto());
+
+        simpanButton.setText("Update");
+        batalButton.setVisible(true);
+        batalButton.setManaged(true);
+        pesanLabel.setText("Mode Edit: mengubah \"" + produk.getNama() + "\" (ID: " + produk.getId() + ")");
+        namaField.requestFocus();
+    }
+
+    @FXML
+    private void cancelEdit() {
+        resetForm();
+        pesanLabel.setText("Edit dibatalkan.");
+    }
+
+    private void resetForm() {
+        produkSedangDiedit = null;
+        namaField.clear();
+        hargaField.clear();
+        fotoBox.setValue("roti.png");
+        simpanButton.setText("Simpan");
+        batalButton.setVisible(false);
+        batalButton.setManaged(false);
+    }
+
+    private void deleteProduct(Produk produk) {
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Hapus");
+        konfirmasi.setHeaderText("Hapus produk \"" + produk.getNama() + "\"?");
+        konfirmasi.setContentText("Data yang dihapus dari database tidak dapat dikembalikan.");
+
+        Optional<ButtonType> hasil = konfirmasi.showAndWait();
+        if (hasil.isPresent() && hasil.get() == ButtonType.OK) {
+            try {
+                repository.delete(produk.getId());
+                if (produkSedangDiedit != null && produkSedangDiedit.getId() == produk.getId()) {
+                    resetForm();
+                }
+                showData();
+                pesanLabel.setText("Produk \"" + produk.getNama() + "\" berhasil dihapus.");
+            } catch (SQLException e) {
+                pesanLabel.setText("Gagal menghapus produk. Lihat Output.");
+                e.printStackTrace();
+            }
+        }
     }
 
     @FXML
     private void saveProduct() {
-        Produk produk;
+        String nama;
+        long harga;
+        String foto;
+
         try {
-            String nama = namaField.getText();
-            long harga = Long.parseLong(hargaField.getText().trim());
-            String foto = fotoBox.getValue();
-            produk = new Produk(nama, harga, foto);
+            nama = namaField.getText();
+            harga = Long.parseLong(hargaField.getText().trim());
+            foto = fotoBox.getValue();
+            // Validasi input menggunakan constructor Produk
+            new Produk(nama, harga, foto);
         } catch (NumberFormatException e) {
             pesanLabel.setText("Harga harus angka bulat, contoh 12000.");
             return;
@@ -114,18 +194,28 @@ public class KatalogController {
             pesanLabel.setText(e.getMessage());
             return;
         }
+
+        boolean isEdit = (produkSedangDiedit != null);
+
         try {
-            repository.add(produk);
+            if (isEdit) {
+                Produk produkUpdate = new Produk(produkSedangDiedit.getId(), nama, harga, foto);
+                repository.update(produkUpdate);
+            } else {
+                Produk produkBaru = new Produk(nama, harga, foto);
+                repository.add(produkBaru);
+            }
         } catch (SQLException e) {
-            pesanLabel.setText("Gagal menyimpan. Lihat Output.");
+            pesanLabel.setText(isEdit ? "Gagal memperbarui data. Lihat Output." : "Gagal menyimpan. Lihat Output.");
             e.printStackTrace();
             return;
         }
-        namaField.clear();
-        hargaField.clear();
+
+        resetForm();
+
         try {
             showData();
-            pesanLabel.setText("Produk berhasil disimpan.");
+            pesanLabel.setText(isEdit ? "Produk berhasil diperbarui." : "Produk berhasil disimpan.");
         } catch (SQLException e) {
             pesanLabel.setText("Data tersimpan, tetapi katalog gagal dimuat ulang.");
             e.printStackTrace();
